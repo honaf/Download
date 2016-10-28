@@ -68,7 +68,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             case R.id.mDownloadPauseBtn:
                 if (entry.status == DownloadEntry.DownloadStatus.downloading) {
                     mDownloadManager.pause(entry);
-                } else if (entry.status == DownloadEntry.DownloadStatus.pause) {
+                } else if (entry.status == DownloadEntry.DownloadStatus.paused) {
                     mDownloadManager.resume(entry);
                 }
                 break;
