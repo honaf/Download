@@ -2,7 +2,10 @@ package com.honaf.download;
 
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.Toolbar;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
@@ -40,7 +43,13 @@ public class ListActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         mDownloadManager = DownloadManager.getInstance(this);
+
+
         setContentView(R.layout.activity_list);
+
+        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+
         mDownloadEntries.add(new DownloadEntry("http://api.stay4it.com/uploads/test0.jpg"));
         mDownloadEntries.add(new DownloadEntry("http://api.stay4it.com/uploads/test1.jpg"));
         mDownloadEntries.add(new DownloadEntry("http://api.stay4it.com/uploads/test2.jpg"));
@@ -121,5 +130,32 @@ public class ListActivity extends AppCompatActivity {
         TextView mDownloadLabel;
         Button mDownloadBtn;
     }
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.menu_main, menu);
+        return true;
+    }
 
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle action bar item clicks here. The action bar will
+        // automatically handle clicks on the Home/Up button, so long
+        // as you specify a parent activity in AndroidManifest.xml.
+        int id = item.getItemId();
+
+        //noinspection SimplifiableIfStatement
+        if (id == R.id.action_settings) {
+            if(item.getTitle().equals("pause all")){
+                item.setTitle(R.string.action_recover_all);
+                mDownloadManager.pauseAll();
+            }else {
+                item.setTitle(R.string.action_pause_all);
+                mDownloadManager.recoverAll();
+            }
+            return true;
+        }
+
+        return super.onOptionsItemSelected(item);
+    }
 }
