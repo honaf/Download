@@ -3,28 +3,25 @@
     package="com.honaf.download">
 
     <application
+        android:name=".MyApplication"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <!--<activity android:name=".MainActivity">-->
-            <!--<intent-filter>-->
-                <!--<action android:name="android.intent.action.MAIN" />-->
-
-                <!--<category android:name="android.intent.category.LAUNCHER" />-->
-            <!--</intent-filter>-->
-        <!--</activity>-->
-        <activity
-            android:name=".ListActivity"
-            android:logo="@mipmap/ic_launcher"
-            android:theme="@style/AppTheme.NoActionBar"
-            android:label="下载列表" >
+        <activity android:name=".MainActivity"/>
+        <activity android:name=".WelcomeActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+        </activity>
+        <activity
+            android:name=".ListActivity"
+            android:logo="@mipmap/ic_launcher"
+            android:theme="@style/AppTheme.NoActionBar"
+            android:label="下载列表" >
         </activity>
     </application>
 

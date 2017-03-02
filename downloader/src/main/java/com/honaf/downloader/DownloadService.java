@@ -7,6 +7,8 @@ import android.os.IBinder;
 import android.os.Message;
 import android.util.Log;
 
+import com.honaf.downloader.db.DBController;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -18,10 +20,13 @@ import java.util.concurrent.LinkedBlockingDeque;
  * Created by honaf on 2016/10/26.
  */
 
-public class DownloadService extends Service{
-    private HashMap<String,DownloadTask> mDownloadingTasks = new HashMap<>();
+public class DownloadService extends Service {
+    private HashMap<String, DownloadTask> mDownloadingTasks = new HashMap<>();
     private ExecutorService executorService;
     private LinkedBlockingDeque<DownloadEntry> mDownloadingDeque = new LinkedBlockingDeque<>();
+    private DBController dbController;
+    private DataChanger dataChanger;
+
     @Override
     public IBinder onBind(Intent intent) {
         return null;
@@ -29,13 +34,25 @@ public class DownloadService extends Service{
 
     @Override
     public void onCreate() {
-        Log.e("DownloadService==>","onCreate");
+        Log.e("DownloadService==>", "onCreate");
         super.onCreate();
         executorService = Executors.newCachedThreadPool();
+        dataChanger = DataChanger.getInstance(getApplicationContext());
+        dbController = DBController.getInstance(getApplicationContext());
+        ArrayList<DownloadEntry> downloadEntries = dbController.queryAll();
+        if (downloadEntries != null) {
+            for (DownloadEntry downloadEntry : downloadEntries) {
+                if (downloadEntry.status == DownloadEntry.DownloadStatus.downloading || downloadEntry.status == DownloadEntry.DownloadStatus.waiting) {
+                    downloadEntry.status = DownloadEntry.DownloadStatus.paused;
+                    addDownload(downloadEntry);
+                }
+                dataChanger.addDBDataToDownloadEntrys(downloadEntry.id, downloadEntry);
+            }
+        }
     }
 
 
-    Handler handler = new Handler(){
+    Handler handler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
             super.handleMessage(msg);
@@ -50,13 +67,13 @@ public class DownloadService extends Service{
                     mDownloadingTasks.remove(tempDownloadEntry.id);
                     break;
             }
-            DataChanger.getInstance().postStatus((DownloadEntry) msg.obj);
+            DataChanger.getInstance(getApplicationContext()).postStatus((DownloadEntry) msg.obj);
         }
     };
 
     private void checkNext(DownloadEntry tempDownloadEntry) {
         DownloadEntry newDownloadEntry = mDownloadingDeque.poll();
-        if(newDownloadEntry != null) {
+        if (newDownloadEntry != null) {
             startDownload(newDownloadEntry);
         }
     }
@@ -64,9 +81,12 @@ public class DownloadService extends Service{
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        int action = intent.getIntExtra(Constants.KEY_DOWNLOAD_ACTION,-1);
-        DownloadEntry downloadEntry = (DownloadEntry) intent.getSerializableExtra(Constants.KEY_DOWNLOAD_ENTRY);
-        doAction(action,downloadEntry);
+        Log.e("DownloadService==>", "onStartCommand");
+        if (intent != null) {
+            int action = intent.getIntExtra(Constants.KEY_DOWNLOAD_ACTION, -1);
+            DownloadEntry downloadEntry = (DownloadEntry) intent.getSerializableExtra(Constants.KEY_DOWNLOAD_ENTRY);
+            doAction(action, downloadEntry);
+        }
         return super.onStartCommand(intent, flags, startId);
     }
 
@@ -94,14 +114,14 @@ public class DownloadService extends Service{
     }
 
     private void recoverAll() {
-        ArrayList<DownloadEntry> downloadEntries = DataChanger.getInstance().queryAllPauseDownloadEntries();
+        ArrayList<DownloadEntry> downloadEntries = dataChanger.queryAllPauseDownloadEntries();
         for (DownloadEntry entry : downloadEntries) {
             addDownload(entry);
         }
     }
 
     private void pauseAll() {
-        while(mDownloadingDeque.iterator().hasNext()) {
+        while (mDownloadingDeque.iterator().hasNext()) {
             DownloadEntry entry = mDownloadingDeque.poll();
             entry.status = DownloadEntry.DownloadStatus.paused;
             Message msg = handler.obtainMessage();
@@ -109,7 +129,7 @@ public class DownloadService extends Service{
             handler.sendMessage(msg);
         }
 
-        for (Map.Entry<String,DownloadTask> map : mDownloadingTasks.entrySet() ) {
+        for (Map.Entry<String, DownloadTask> map : mDownloadingTasks.entrySet()) {
             map.getValue().pause();
         }
         mDownloadingTasks.clear();
@@ -117,30 +137,32 @@ public class DownloadService extends Service{
 
     private void pauseDownload(DownloadEntry downloadEntry) {
         DownloadTask downloadTask = mDownloadingTasks.remove(downloadEntry.id);
-        if(downloadTask != null) {
+        if (downloadTask != null) {
             downloadTask.pause();
         }
     }
 
     private void cancelDownload(DownloadEntry downloadEntry) {
         DownloadTask downloadTask = mDownloadingTasks.remove(downloadEntry.id);
-        if(downloadTask != null) {
+        if (downloadTask != null) {
             downloadTask.cancel();
         }
     }
+
     private void addDownload(DownloadEntry downloadEntry) {
-        if(mDownloadingTasks.size() >= 3) {
+        if (mDownloadingTasks.size() >= 3) {
             mDownloadingDeque.add(downloadEntry);
             downloadEntry.status = DownloadEntry.DownloadStatus.waiting;
-            DataChanger.getInstance().postStatus(downloadEntry);
-        }else {
+            dataChanger.postStatus(downloadEntry);
+        } else {
             startDownload(downloadEntry);
         }
     }
+
     private void startDownload(DownloadEntry downloadEntry) {
-        DownloadTask downloadTask = new DownloadTask(downloadEntry,handler);
+        DownloadTask downloadTask = new DownloadTask(downloadEntry, handler);
 //        downloadTask.start();
-        mDownloadingTasks.put(downloadEntry.id,downloadTask);
+        mDownloadingTasks.put(downloadEntry.id, downloadTask);
         executorService.execute(downloadTask);
     }
 

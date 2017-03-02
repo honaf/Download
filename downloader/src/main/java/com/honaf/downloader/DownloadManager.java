@@ -16,6 +16,7 @@ public class DownloadManager {
 
     private DownloadManager(Context context) {
         this.context = context;
+        context.startService(new Intent(context, DownloadService.class));
     }
 
     public synchronized static DownloadManager getInstance(Context context) {
@@ -66,11 +67,11 @@ public class DownloadManager {
     }
 
     public void addObserver(DataWatcher dataWatcher) {
-        DataChanger.getInstance().addObserver(dataWatcher);
+        DataChanger.getInstance(context).addObserver(dataWatcher);
     }
 
     public void removeObserver(DataWatcher dataWatcher) {
-        DataChanger.getInstance().deleteObserver(dataWatcher);
+        DataChanger.getInstance(context).deleteObserver(dataWatcher);
     }
 
     public void pauseAll() {
@@ -98,5 +99,9 @@ public class DownloadManager {
             return true;
         }
         return false;
+    }
+
+    public DownloadEntry getDownloadEntryById(String id) {
+        return DataChanger.getInstance(context).getDownloadEntryById(id);
     }
 }

@@ -1,5 +1,9 @@
 package com.honaf.downloader;
 
+import android.content.Context;
+
+import com.honaf.downloader.db.DBController;
+
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -12,16 +16,19 @@ import java.util.Observable;
 public class DataChanger extends Observable{
     private static DataChanger mInstance;
     private LinkedHashMap<String,DownloadEntry> downloadEntries;
-    public DataChanger() {
+    private Context context;
+    private DataChanger(Context context) {
+        this.context = context;
         downloadEntries = new LinkedHashMap<>();
     }
-    public synchronized static DataChanger getInstance() {
+    public synchronized static DataChanger getInstance(Context context) {
         if(mInstance == null) {
-            mInstance = new DataChanger();
+            mInstance = new DataChanger(context);
         }
         return mInstance;
     }
     public void postStatus(DownloadEntry downloadEntry) {
+        DBController.getInstance(context).newOrUpdate(downloadEntry);
         downloadEntries.put(downloadEntry.id,downloadEntry);
         setChanged();
         notifyObservers(downloadEntry);
@@ -36,5 +43,13 @@ public class DataChanger extends Observable{
 
         }
         return downloadEntryArrayList;
+    }
+
+    public DownloadEntry getDownloadEntryById(String id) {
+        return downloadEntries.get(id);
+    }
+
+    public void addDBDataToDownloadEntrys(String key,DownloadEntry downloadEntry){
+        downloadEntries.put(key,downloadEntry);
     }
 }

@@ -3,6 +3,7 @@ package com.honaf.download;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -28,9 +29,9 @@ public class ListActivity extends AppCompatActivity {
         @Override
         public void notifyUpdate(DownloadEntry data) {
             int index = mDownloadEntries.indexOf(data);
-            if (index != -1){
+            if (index != -1) {
                 mDownloadEntries.remove(index);
-                mDownloadEntries.add(index,data);
+                mDownloadEntries.add(index, data);
                 adapter.notifyDataSetChanged();
             }
             LogUtil.e(data.toString());
@@ -42,10 +43,10 @@ public class ListActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        mDownloadManager = DownloadManager.getInstance(this);
-
 
         setContentView(R.layout.activity_list);
+        Log.e("ListActivity==>","onCreate");
+        mDownloadManager = DownloadManager.getInstance(this);
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -61,6 +62,14 @@ public class ListActivity extends AppCompatActivity {
         mDownloadEntries.add(new DownloadEntry("http://api.stay4it.com/uploads/test8.jpg"));
         mDownloadEntries.add(new DownloadEntry("http://api.stay4it.com/uploads/test9.jpg"));
         mDownloadLsv = (ListView) findViewById(R.id.mDownloadLsv);
+        DownloadEntry downloadEntry;
+        for (int i = 0; i < mDownloadEntries.size(); i++) {
+            downloadEntry = DownloadManager.getInstance(this).getDownloadEntryById(mDownloadEntries.get(i).id);
+            if (downloadEntry != null) {
+                mDownloadEntries.set(i, downloadEntry);
+            }
+        }
+
         adapter = new DownloadAdapter();
         mDownloadLsv.setAdapter(adapter);
     }
@@ -130,6 +139,7 @@ public class ListActivity extends AppCompatActivity {
         TextView mDownloadLabel;
         Button mDownloadBtn;
     }
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
@@ -146,10 +156,10 @@ public class ListActivity extends AppCompatActivity {
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
-            if(item.getTitle().equals("pause all")){
+            if (item.getTitle().equals("pause all")) {
                 item.setTitle(R.string.action_recover_all);
                 mDownloadManager.pauseAll();
-            }else {
+            } else {
                 item.setTitle(R.string.action_pause_all);
                 mDownloadManager.recoverAll();
             }

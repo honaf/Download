@@ -1,17 +1,26 @@
 package com.honaf.downloader;
 
+import com.j256.ormlite.field.DatabaseField;
+import com.j256.ormlite.table.DatabaseTable;
+
 import java.io.Serializable;
 
 /**
  * Created by honaf on 2016/10/26.
  */
-
+@DatabaseTable(tableName = "downloadentry")
 public class DownloadEntry implements Serializable {
+    @DatabaseField(id = true)
     public String id;
+    @DatabaseField
     public String name;
+    @DatabaseField
     public String url;
+    @DatabaseField
     public int totalLength;
+    @DatabaseField
     public int currentLength;
+    @DatabaseField
     public DownloadStatus status = DownloadStatus.idle;
 
     public DownloadEntry(String url) {
