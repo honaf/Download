@@ -51,16 +51,15 @@ public class ListActivity extends AppCompatActivity {
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        mDownloadEntries.add(new DownloadEntry("http://api.stay4it.com/uploads/test0.jpg"));
-        mDownloadEntries.add(new DownloadEntry("http://api.stay4it.com/uploads/test1.jpg"));
-        mDownloadEntries.add(new DownloadEntry("http://api.stay4it.com/uploads/test2.jpg"));
+        mDownloadEntries.add(new DownloadEntry("http://192.168.2.63:8585/box-disk1.vmdk"));
+        mDownloadEntries.add(new DownloadEntry("http://api.stay4it.com/uploads/test1.jpg"));//200
+        mDownloadEntries.add(new DownloadEntry("http://shouji.360tpcdn.com/150720/789cd3f2facef6b27004d9f813599463/com.mfw.roadbook_147.apk"));
         mDownloadEntries.add(new DownloadEntry("http://api.stay4it.com/uploads/test3.jpg"));
         mDownloadEntries.add(new DownloadEntry("http://api.stay4it.com/uploads/test4.jpg"));
         mDownloadEntries.add(new DownloadEntry("http://api.stay4it.com/uploads/test5.jpg"));
         mDownloadEntries.add(new DownloadEntry("http://api.stay4it.com/uploads/test6.jpg"));
-        mDownloadEntries.add(new DownloadEntry("http://api.stay4it.com/uploads/test7.jpg"));
-        mDownloadEntries.add(new DownloadEntry("http://api.stay4it.com/uploads/test8.jpg"));
-        mDownloadEntries.add(new DownloadEntry("http://api.stay4it.com/uploads/test9.jpg"));
+        mDownloadEntries.add(new DownloadEntry("http://qn-apk.wdjcdn.com/b/42/b33f05904f94eb029afc8dfeb522942b.apk"));  //206 range
+        mDownloadEntries.add(new DownloadEntry("http://shouji.360tpcdn.com/150716/aea8ca0e6617b0989d3dcce0bb9877d5/com.cmge.xianjian.a360_30.apk"));//206
         mDownloadLsv = (ListView) findViewById(R.id.mDownloadLsv);
         DownloadEntry downloadEntry;
         for (int i = 0; i < mDownloadEntries.size(); i++) {

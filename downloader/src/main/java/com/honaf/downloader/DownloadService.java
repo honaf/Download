@@ -16,11 +16,20 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingDeque;
 
+import static com.honaf.downloader.DownloadEntry.DownloadStatus.paused;
+
 /**
  * Created by honaf on 2016/10/26.
  */
 
 public class DownloadService extends Service {
+    public static final int NOTIFY_DOWNLOADING = 1;
+    public static final int NOTIFY_UPDATING = 2;
+    public static final int NOTIFY_PAUSED_OR_CANCELLED = 3;
+    public static final int NOTIFY_COMPLETED = 4;
+    public static final int NOTIFY_CONNECTING = 5;
+    //    1. net error 2. no sd 3. no memory
+    public static final int NOTIFY_ERROR = 6;
     private HashMap<String, DownloadTask> mDownloadingTasks = new HashMap<>();
     private ExecutorService executorService;
     private LinkedBlockingDeque<DownloadEntry> mDownloadingDeque = new LinkedBlockingDeque<>();
@@ -43,7 +52,7 @@ public class DownloadService extends Service {
         if (downloadEntries != null) {
             for (DownloadEntry downloadEntry : downloadEntries) {
                 if (downloadEntry.status == DownloadEntry.DownloadStatus.downloading || downloadEntry.status == DownloadEntry.DownloadStatus.waiting) {
-                    downloadEntry.status = DownloadEntry.DownloadStatus.paused;
+                    downloadEntry.status = paused;
                     addDownload(downloadEntry);
                 }
                 dataChanger.addDBDataToDownloadEntrys(downloadEntry.id, downloadEntry);
@@ -57,12 +66,11 @@ public class DownloadService extends Service {
         public void handleMessage(Message msg) {
             super.handleMessage(msg);
             DownloadEntry tempDownloadEntry = (DownloadEntry) msg.obj;
-            switch (tempDownloadEntry.status) {
-                case cancel:
-                case paused:
+            switch (msg.what) {
+                case NOTIFY_PAUSED_OR_CANCELLED:
                     checkNext(tempDownloadEntry);
                     break;
-                case completed:
+                case NOTIFY_COMPLETED:
                     checkNext(tempDownloadEntry);
                     mDownloadingTasks.remove(tempDownloadEntry.id);
                     break;
@@ -123,7 +131,7 @@ public class DownloadService extends Service {
     private void pauseAll() {
         while (mDownloadingDeque.iterator().hasNext()) {
             DownloadEntry entry = mDownloadingDeque.poll();
-            entry.status = DownloadEntry.DownloadStatus.paused;
+            entry.status = paused;
             Message msg = handler.obtainMessage();
             msg.obj = entry;
             handler.sendMessage(msg);
@@ -160,10 +168,9 @@ public class DownloadService extends Service {
     }
 
     private void startDownload(DownloadEntry downloadEntry) {
-        DownloadTask downloadTask = new DownloadTask(downloadEntry, handler);
-//        downloadTask.start();
+        DownloadTask downloadTask = new DownloadTask(downloadEntry, handler,executorService);
+        downloadTask.start();
         mDownloadingTasks.put(downloadEntry.id, downloadTask);
-        executorService.execute(downloadTask);
     }
 
 }

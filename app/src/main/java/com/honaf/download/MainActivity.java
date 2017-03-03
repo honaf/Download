@@ -58,7 +58,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         if (entry == null) {
             entry = new DownloadEntry();
             entry.name = "test.jpg";
-            entry.url = "http://api.stay4it.com/uploads/test.jpg";
+            entry.url = "http://api.stay4it.com/uploads/test1.jpg";
             entry.id = "1";
         }
         switch (v.getId()) {

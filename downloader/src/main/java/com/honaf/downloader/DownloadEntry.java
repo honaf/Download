@@ -1,9 +1,11 @@
 package com.honaf.downloader;
 
+import com.j256.ormlite.field.DataType;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
 
 import java.io.Serializable;
+import java.util.HashMap;
 
 /**
  * Created by honaf on 2016/10/26.
@@ -22,7 +24,11 @@ public class DownloadEntry implements Serializable {
     public int currentLength;
     @DatabaseField
     public DownloadStatus status = DownloadStatus.idle;
-
+    @DatabaseField
+    public boolean enableRange;
+    @DatabaseField(dataType = DataType.SERIALIZABLE)
+    public HashMap<Integer,Integer> progressMaps;
+    public int percent;
     public DownloadEntry(String url) {
         this.url = url;
         this.id = url;
@@ -34,11 +40,11 @@ public class DownloadEntry implements Serializable {
     }
 
     public enum DownloadStatus{
-        waiting,downloading,paused,resume,cancel, idle, completed
+        waiting,downloading,paused,resume,cancel, idle, connecting, completed,error
     }
     @Override
     public String toString() {
-        return "DownloadEntry: " + url + " is " + status.name() + " with " + currentLength + "/" + totalLength;
+        return "DownloadEntry: "  + " is " + status.name() + " with " + currentLength + "/" + totalLength;
     }
 
     @Override
