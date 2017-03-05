@@ -8,6 +8,7 @@ import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.concurrent.CountDownLatch;
 
 /**
  * Created by honaf on 2016/10/26.
@@ -22,6 +23,8 @@ public class DownloadThread implements Runnable {
     private final DownloadListener downloadListener;
     private volatile boolean isPause = false;
     private volatile DownloadEntry.DownloadStatus status;
+    private volatile boolean isCancel;
+    private volatile boolean isError;
 
     public DownloadThread(String url, int index, long startPostion, long endPosition, DownloadListener downloadListener) {
         this.url = url;
@@ -29,7 +32,7 @@ public class DownloadThread implements Runnable {
         this.startPostion = startPostion;
         this.endPosition = endPosition;
         this.downloadListener = downloadListener;
-        this.path = Environment.getExternalStorageDirectory() + File.separator + "honaf" + File.separator + url.substring(url.lastIndexOf("/") + 1);
+        this.path = Environment.getExternalStorageDirectory() + File.separator + url.substring(url.lastIndexOf("/") + 1);
     }
 
     /**
@@ -57,7 +60,7 @@ public class DownloadThread implements Runnable {
 //            int contentLength = connection.getContentLength();
             RandomAccessFile raf;
             int length;
-            byte[] bytes = new byte[1024];
+            byte[] bytes = new byte[2048];
             InputStream is;
             File file = new File(path);
             if (responseCode == HttpURLConnection.HTTP_PARTIAL) {
@@ -65,7 +68,7 @@ public class DownloadThread implements Runnable {
                 raf.seek(startPostion);
                 is = connection.getInputStream();
                 while ((length = is.read(bytes)) != -1) {
-                    if (isPause) {
+                    if (isPause || isCancel) {
                         break;
                     }
                     raf.write(bytes, 0, length);
@@ -74,12 +77,18 @@ public class DownloadThread implements Runnable {
                 raf.close();
                 is.close();
             } else {
-                downloadListener.onDownloadError(responseCode + "");
+                downloadListener.onDownloadError(index,responseCode + "");
             }
             if (isPause) {
                 status = DownloadEntry.DownloadStatus.paused;
                 downloadListener.onDownloadPause(index);
-            } else {
+            } else if(isCancel) {
+                status = DownloadEntry.DownloadStatus.cancel;
+                downloadListener.onDownloadCancel(index);
+            } else if(isError){
+                status = DownloadEntry.DownloadStatus.error;
+                downloadListener.onDownloadCancel(index);
+            }else {
                 status = DownloadEntry.DownloadStatus.completed;
                 downloadListener.onDownloadComplete(index);
             }
@@ -88,9 +97,12 @@ public class DownloadThread implements Runnable {
             if (isPause) {
                 status = DownloadEntry.DownloadStatus.paused;
                 downloadListener.onDownloadPause(index);
+            } else if (isCancel){
+                status = DownloadEntry.DownloadStatus.cancel;
+                downloadListener.onDownloadCancel(index);
             } else {
                 status = DownloadEntry.DownloadStatus.error;
-                downloadListener.onDownloadError(e.getMessage());
+                downloadListener.onDownloadError(index,e.getMessage());
             }
 
             e.printStackTrace();
@@ -114,13 +126,33 @@ public class DownloadThread implements Runnable {
         Thread.currentThread().interrupt();
     }
 
+    public void cancel() {
+        isCancel = true;
+        Thread.currentThread().interrupt();
+    }
+
+    public boolean isCancel() {
+        return status == DownloadEntry.DownloadStatus.cancel || status == DownloadEntry.DownloadStatus.completed;
+    }
+
+    public boolean isError() {
+        return status == DownloadEntry.DownloadStatus.error;
+    }
+
+    public void cancelByError() {
+        isError = true;
+        Thread.currentThread().interrupt();
+    }
+
     interface DownloadListener {
         void onProgressChanged(int index, int progress);
 
         void onDownloadComplete(int index);
 
-        void onDownloadError(String message);
+        void onDownloadError(int index, String message);
 
         void onDownloadPause(int index);
+
+        void onDownloadCancel(int index);
     }
 }

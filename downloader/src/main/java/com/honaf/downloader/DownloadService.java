@@ -16,6 +16,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingDeque;
 
+import static com.honaf.downloader.DownloadEntry.DownloadStatus.completed;
 import static com.honaf.downloader.DownloadEntry.DownloadStatus.paused;
 
 /**
@@ -68,14 +69,16 @@ public class DownloadService extends Service {
             DownloadEntry tempDownloadEntry = (DownloadEntry) msg.obj;
             switch (msg.what) {
                 case NOTIFY_PAUSED_OR_CANCELLED:
-                    checkNext(tempDownloadEntry);
-                    break;
                 case NOTIFY_COMPLETED:
+                case NOTIFY_ERROR:
                     checkNext(tempDownloadEntry);
-                    mDownloadingTasks.remove(tempDownloadEntry.id);
                     break;
+//                case NOTIFY_COMPLETED:
+//                    checkNext(tempDownloadEntry);
+//                    mDownloadingTasks.remove(tempDownloadEntry.id);
+//                    break;
             }
-            DataChanger.getInstance(getApplicationContext()).postStatus((DownloadEntry) msg.obj);
+            dataChanger.postStatus((DownloadEntry) msg.obj);
         }
     };
 
@@ -93,6 +96,9 @@ public class DownloadService extends Service {
         if (intent != null) {
             int action = intent.getIntExtra(Constants.KEY_DOWNLOAD_ACTION, -1);
             DownloadEntry downloadEntry = (DownloadEntry) intent.getSerializableExtra(Constants.KEY_DOWNLOAD_ENTRY);
+            if(downloadEntry != null && dataChanger.containsDownloadEntryById(downloadEntry.id)) {
+                downloadEntry = dataChanger.queryDownloadEntryById(downloadEntry.id);
+            }
             doAction(action, downloadEntry);
         }
         return super.onStartCommand(intent, flags, startId);

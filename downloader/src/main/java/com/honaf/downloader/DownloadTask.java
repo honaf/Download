@@ -1,9 +1,11 @@
 package com.honaf.downloader;
 
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
 
+import java.io.File;
 import java.util.HashMap;
 import java.util.concurrent.ExecutorService;
 
@@ -29,10 +31,25 @@ public class DownloadTask implements ConnectThread.ConnectListener, DownloadThre
     }
 
     public void start() {
-        downloadEntry.status = DownloadEntry.DownloadStatus.connecting;
-        notifyHandler(DownloadService.NOTIFY_CONNECTING);
-        connectThread = new ConnectThread(downloadEntry.url, this);
-        executorService.execute(connectThread);
+        if(downloadEntry.totalLength > 0){
+            LogUtil.d("不需要connecting");
+            startDownload();
+        } else {
+            downloadEntry.status = DownloadEntry.DownloadStatus.connecting;
+            notifyHandler(DownloadService.NOTIFY_CONNECTING);
+            connectThread = new ConnectThread(downloadEntry.url, this);
+            executorService.execute(connectThread);
+        }
+
+    }
+
+    private void startDownload() {
+        LogUtil.d("startDownload");
+        if (downloadEntry.enableRange) {
+            startMulThreadDownload();
+        } else {
+            startSingleThreadDownload();
+        }
     }
 
     public void notifyHandler(int what) {
@@ -51,7 +68,7 @@ public class DownloadTask implements ConnectThread.ConnectListener, DownloadThre
             return;
         }
         for (int i = 0; i < downloadThread.length; i++) {
-            if (!downloadThread[i].isPause()) {
+            if (downloadThread[i] != null && downloadThread[i].isRunning()) {
                 downloadThread[i].pause();
             }
         }
@@ -63,17 +80,22 @@ public class DownloadTask implements ConnectThread.ConnectListener, DownloadThre
         if (connectThread != null && connectThread.isRunning()) {
             connectThread.cancel();
         }
+        if (downloadThread == null || downloadThread.length <= 0) {
+            return;
+        }
+        for (int i = 0; i < downloadThread.length; i++) {
+            if (downloadThread[i] != null && downloadThread[i].isRunning()) {
+                downloadThread[i].cancel();
+            }
+        }
     }
 
     @Override
     public void onConnected(boolean isSupportRange, int totalLength) {
+        LogUtil.d("onConnected");
         downloadEntry.enableRange = isSupportRange;
         downloadEntry.totalLength = totalLength;
-        if (isSupportRange) {
-            startMulThreadDownload();
-        } else {
-            startSingleThreadDownload();
-        }
+        startDownload();
     }
 
     private void startMulThreadDownload() {
@@ -110,14 +132,19 @@ public class DownloadTask implements ConnectThread.ConnectListener, DownloadThre
     }
 
     @Override
-    public void onConnectError(String message) {
-        downloadEntry.status = DownloadEntry.DownloadStatus.error;
-        notifyHandler(DownloadService.NOTIFY_ERROR);
+    public synchronized void onConnectError(String message) {
+        if (isPaused || isCancelled){
+            downloadEntry.status = isPaused ? DownloadEntry.DownloadStatus.paused : DownloadEntry.DownloadStatus.cancel;
+            notifyHandler(DownloadService.NOTIFY_PAUSED_OR_CANCELLED);
+        } else {
+            downloadEntry.status = DownloadEntry.DownloadStatus.error;
+            notifyHandler(DownloadService.NOTIFY_ERROR);
+        }
+
     }
 
     @Override
     public synchronized void onProgressChanged(int index, int progress) {
-        Log.e("onProgressChanged=>" + index, "progress:" + progress);
         downloadEntry.currentLength += progress;
         if (downloadEntry.currentLength == downloadEntry.totalLength) {
             downloadEntry.status = DownloadEntry.DownloadStatus.completed;
@@ -142,19 +169,49 @@ public class DownloadTask implements ConnectThread.ConnectListener, DownloadThre
     }
 
     @Override
-    public synchronized void onDownloadError(String message) {
-        downloadEntry.status = DownloadEntry.DownloadStatus.error;
-        notifyHandler(DownloadService.NOTIFY_ERROR);
+    public synchronized void onDownloadError(int index, String message) {
+        LogUtil.d("onDownloadError");
+        boolean isAllError = true;
+        for (DownloadThread thread : downloadThread) {
+            if(thread != null && !thread.isError()) {
+                isAllError = false;
+                LogUtil.d("出现下载异常，同时去取消其他线程");
+                thread.cancelByError();
+            }
+        }
+        if(isAllError) {
+            downloadEntry.status = DownloadEntry.DownloadStatus.error;
+            notifyHandler(DownloadService.NOTIFY_ERROR);
+        }
     }
 
+
     @Override
-    public void onDownloadPause(int index) {
+    public synchronized void onDownloadPause(int index) {
         for (int i = 0; i < downloadThread.length; i++) {
             if(!downloadThread[i].isPause()) {
                 return;
             }
         }
         downloadEntry.status = DownloadEntry.DownloadStatus.paused;
+        notifyHandler(DownloadService.NOTIFY_PAUSED_OR_CANCELLED);
+    }
+
+    @Override
+    public synchronized void onDownloadCancel(int index) {
+        for (int i = 0; i < downloadThread.length; i++) {
+            if(!downloadThread[i].isCancel()) {
+                return;
+            }
+        }
+        downloadEntry.status = DownloadEntry.DownloadStatus.cancel;
+        downloadEntry.reset();
+        String path = Environment.getExternalStorageDirectory() + File.separator
+                + downloadEntry.url.substring(downloadEntry.url.lastIndexOf("/") + 1);
+        File file = new File(path);
+        if(file.exists()) {
+            file.delete();
+        }
         notifyHandler(DownloadService.NOTIFY_PAUSED_OR_CANCELLED);
     }
 }

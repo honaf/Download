@@ -53,6 +53,7 @@ public class ConnectThread implements Runnable {
             }
             isRunning = false;
         } catch (IOException e) {
+            //// TODO: 17/3/5 加判断，有可能是取消
             isRunning = false;
             listener.onConnectError(e.getMessage());
         } finally {

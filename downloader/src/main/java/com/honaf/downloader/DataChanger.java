@@ -52,4 +52,12 @@ public class DataChanger extends Observable{
     public void addDBDataToDownloadEntrys(String key,DownloadEntry downloadEntry){
         downloadEntries.put(key,downloadEntry);
     }
+
+    public DownloadEntry queryDownloadEntryById(String id) {
+        return downloadEntries.get(id);
+    }
+
+    public boolean containsDownloadEntryById(String id) {
+        return downloadEntries.containsKey(id);
+    }
 }

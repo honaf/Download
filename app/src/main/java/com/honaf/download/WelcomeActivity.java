@@ -24,7 +24,7 @@ public class WelcomeActivity extends AppCompatActivity {
     };
 
     private  void jumpTo() {
-        Intent intent = new Intent(this, ListActivity.class);
+        Intent intent = new Intent(this, MainActivity.class);
         startActivity(intent);
         finish();
     }
